@@ -1,0 +1,574 @@
+-- ScreenGui setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AimbotGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Mobile compatibility
+if syn and syn.protect_gui then
+    syn.protect_gui(screenGui)
+end
+screenGui.Parent = game.CoreGui
+
+-- Variables for settings
+local settings = {
+    enabled = true,
+    aimbotMode = "None",
+    selectedOption = "One",
+    keybind = "None",
+    sliderInt = 50,
+    sliderFloat = 1.0,
+    textInput = "",
+    accentColor = Color3.fromRGB(120, 40, 200)
+}
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 380, 0, 635)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -317)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = false -- We'll use custom dragging
+mainFrame.Parent = screenGui
+
+-- Drag functionality for mobile
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 30)
+topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+
+local dragButton = Instance.new("TextButton")
+dragButton.Name = "DragButton"
+dragButton.Size = UDim2.new(1, 0, 1, 0)
+dragButton.BackgroundTransparency = 1
+dragButton.Text = ""
+dragButton.Parent = topBar
+
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+dragButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+
+dragButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+dragButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- Title Bar with categories
+local categoryFrame = Instance.new("Frame")
+categoryFrame.Name = "CategoryFrame"
+categoryFrame.Size = UDim2.new(1, -20, 0, 25)
+categoryFrame.Position = UDim2.new(0, 10, 0, 35)
+categoryFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+categoryFrame.BorderSizePixel = 0
+categoryFrame.Parent = mainFrame
+
+local categories = {"Enemy", "Team", "Others", "Admin"}
+local categoryButtons = {}
+for i, cat in ipairs(categories) do
+    local btn = Instance.new("TextButton")
+    btn.Name = cat.."Button"
+    btn.Size = UDim2.new(0, 90, 0, 25)
+    btn.Position = UDim2.new(0, (i-1) * 90, 0, 0)
+    btn.BackgroundColor3 = i == 1 and settings.accentColor or Color3.fromRGB(35, 35, 45)
+    btn.Text = cat
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.Parent = categoryFrame
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, b in ipairs(categoryButtons) do
+            b.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        end
+        btn.BackgroundColor3 = settings.accentColor
+        print("Selected category:", cat)
+    end)
+    
+    table.insert(categoryButtons, btn)
+end
+
+-- Aimbot Section
+local aimbotHeader = Instance.new("TextLabel")
+aimbotHeader.Name = "AimbotHeader"
+aimbotHeader.Size = UDim2.new(0, 100, 0, 25)
+aimbotHeader.Position = UDim2.new(0, 10, 0, 70)
+aimbotHeader.BackgroundTransparency = 1
+aimbotHeader.Text = "Aimbot"
+aimbotHeader.TextColor3 = Color3.fromRGB(180, 180, 255)
+aimbotHeader.TextXAlignment = Enum.TextXAlignment.Left
+aimbotHeader.Font = Enum.Font.GothamBold
+aimbotHeader.TextSize = 18
+aimbotHeader.Parent = mainFrame
+
+-- Tabs (GENERAL, AIMBOT)
+local tab1 = Instance.new("TextButton")
+tab1.Size = UDim2.new(0, 70, 0, 30)
+tab1.Position = UDim2.new(0, 10, 0, 100)
+tab1.BackgroundColor3 = settings.accentColor
+tab1.Text = "GENERAL"
+tab1.TextColor3 = Color3.fromRGB(255, 255, 255)
+tab1.TextSize = 11
+tab1.Font = Enum.Font.GothamBold
+tab1.BorderSizePixel = 0
+tab1.Parent = mainFrame
+
+local tab2 = Instance.new("TextButton")
+tab2.Size = UDim2.new(0, 70, 0, 30)
+tab2.Position = UDim2.new(0, 85, 0, 100)
+tab2.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+tab2.Text = "AIMBOT"
+tab2.TextColor3 = Color3.fromRGB(180, 180, 180)
+tab2.TextSize = 11
+tab2.Font = Enum.Font.GothamBold
+tab2.BorderSizePixel = 0
+tab2.Parent = mainFrame
+
+tab1.MouseButton1Click:Connect(function()
+    tab1.BackgroundColor3 = settings.accentColor
+    tab2.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    tab1.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tab2.TextColor3 = Color3.fromRGB(180, 180, 180)
+end)
+
+tab2.MouseButton1Click:Connect(function()
+    tab2.BackgroundColor3 = settings.accentColor
+    tab1.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    tab2.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tab1.TextColor3 = Color3.fromRGB(180, 180, 180)
+end)
+
+-- Enabled toggle
+local enabledFrame = Instance.new("Frame")
+enabledFrame.Size = UDim2.new(0, 150, 0, 35)
+enabledFrame.Position = UDim2.new(0, 10, 0, 140)
+enabledFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+enabledFrame.BorderSizePixel = 0
+enabledFrame.Parent = mainFrame
+
+local enabledLabel = Instance.new("TextLabel")
+enabledLabel.Size = UDim2.new(0, 80, 1, 0)
+enabledLabel.Position = UDim2.new(0, 10, 0, 0)
+enabledLabel.BackgroundTransparency = 1
+enabledLabel.Text = "Enabled"
+enabledLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+enabledLabel.TextXAlignment = Enum.TextXAlignment.Left
+enabledLabel.Font = Enum.Font.Gotham
+enabledLabel.TextSize = 14
+enabledLabel.Parent = enabledFrame
+
+local enabledToggle = Instance.new("TextButton")
+enabledToggle.Size = UDim2.new(0, 45, 0, 25)
+enabledToggle.Position = UDim2.new(0, 95, 0, 5)
+enabledToggle.BackgroundColor3 = settings.accentColor
+enabledToggle.Text = "ON"
+enabledToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+enabledToggle.TextSize = 12
+enabledToggle.Font = Enum.Font.GothamBold
+enabledToggle.BorderSizePixel = 0
+enabledToggle.Parent = enabledFrame
+
+enabledToggle.MouseButton1Click:Connect(function()
+    settings.enabled = not settings.enabled
+    if settings.enabled then
+        enabledToggle.BackgroundColor3 = settings.accentColor
+        enabledToggle.Text = "ON"
+    else
+        enabledToggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        enabledToggle.Text = "OFF"
+    end
+    print("Enabled:", settings.enabled)
+end)
+
+-- Aimbot dropdown
+local aimbotFrame = Instance.new("Frame")
+aimbotFrame.Size = UDim2.new(0, 180, 0, 35)
+aimbotFrame.Position = UDim2.new(0, 170, 0, 140)
+aimbotFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+aimbotFrame.BorderSizePixel = 0
+aimbotFrame.Parent = mainFrame
+
+local aimbotLabel = Instance.new("TextLabel")
+aimbotLabel.Size = UDim2.new(0, 80, 1, 0)
+aimbotLabel.Position = UDim2.new(0, 10, 0, 0)
+aimbotLabel.BackgroundTransparency = 1
+aimbotLabel.Text = "Aimbot"
+aimbotLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+aimbotLabel.TextXAlignment = Enum.TextXAlignment.Left
+aimbotLabel.Font = Enum.Font.Gotham
+aimbotLabel.TextSize = 14
+aimbotLabel.Parent = aimbotFrame
+
+local aimbotDropdown = Instance.new("TextButton")
+aimbotDropdown.Size = UDim2.new(0, 70, 0, 25)
+aimbotDropdown.Position = UDim2.new(0, 100, 0, 5)
+aimbotDropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+aimbotDropdown.Text = "None ▼"
+aimbotDropdown.TextColor3 = Color3.fromRGB(200, 200, 255)
+aimbotDropdown.TextSize = 12
+aimbotDropdown.Font = Enum.Font.Gotham
+aimbotDropdown.BorderSizePixel = 0
+aimbotDropdown.Parent = aimbotFrame
+
+local aimbotOptions = {"None", "Silent Aim", "Visuals", "Smart"}
+local currentOption = 1
+aimbotDropdown.MouseButton1Click:Connect(function()
+    currentOption = currentOption % #aimbotOptions + 1
+    settings.aimbotMode = aimbotOptions[currentOption]
+    aimbotDropdown.Text = settings.aimbotMode .. " ▼"
+    print("Aimbot mode:", settings.aimbotMode)
+end)
+
+-- Status grid
+local statusGrid = Instance.new("Frame")
+statusGrid.Size = UDim2.new(1, -20, 0, 110)
+statusGrid.Position = UDim2.new(0, 10, 0, 185)
+statusGrid.BackgroundTransparency = 1
+statusGrid.Parent = mainFrame
+
+local statusTexts = {
+    {text = "Successfully", color = Color3.fromRGB(120, 40, 200)},
+    {text = "Warning", color = Color3.fromRGB(200, 180, 0)},
+    {text = "Visuals", color = Color3.fromRGB(120, 40, 200)},
+    {text = "Silent Aim", color = Color3.fromRGB(120, 40, 200)},
+    {text = "None", color = Color3.fromRGB(150, 150, 150)},
+    {text = "Error", color = Color3.fromRGB(200, 50, 50)},
+    {text = "Info", color = Color3.fromRGB(120, 40, 200)}
+}
+
+for i, data in ipairs(statusTexts) do
+    local row = math.floor((i-1) / 3)
+    local col = (i-1) % 3
+    
+    local btn = Instance.new("TextButton")
+    btn.Name = data.text.."Button"
+    btn.Size = UDim2.new(0, 110, 0, 30)
+    btn.Position = UDim2.new(0, col * 115, 0, row * 35)
+    btn.BackgroundColor3 = data.color
+    btn.BackgroundTransparency = data.text == "None" and 0.5 or 0
+    btn.Text = data.text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.Parent = statusGrid
+    
+    btn.MouseButton1Click:Connect(function()
+        print("Clicked:", data.text)
+        -- Visual feedback
+        btn.BackgroundTransparency = 0
+        task.wait(0.1)
+        btn.BackgroundTransparency = data.text == "None" and 0.5 or 0
+    end)
+end
+
+-- Bottom buttons (Skins, Config, Misc)
+local bottomButtons = {"Skins", "Config", "Misc"}
+for i, text in ipairs(bottomButtons) do
+    local btn = Instance.new("TextButton")
+    btn.Name = text.."Button"
+    btn.Size = UDim2.new(0, 80, 0, 35)
+    btn.Position = UDim2.new(0, 20 + (i-1) * 90, 0, 305)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(200, 200, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.Parent = mainFrame
+    
+    btn.MouseButton1Click:Connect(function()
+        btn.BackgroundColor3 = settings.accentColor
+        task.wait(0.1)
+        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        print("Clicked:", text)
+    end)
+end
+
+-- OTHER Section
+local otherHeader = Instance.new("TextLabel")
+otherHeader.Size = UDim2.new(0, 100, 0, 25)
+otherHeader.Position = UDim2.new(0, 10, 0, 350)
+otherHeader.BackgroundTransparency = 1
+otherHeader.Text = "OTHER"
+otherHeader.TextColor3 = Color3.fromRGB(180, 120, 255)
+otherHeader.TextXAlignment = Enum.TextXAlignment.Left
+otherHeader.Font = Enum.Font.GothamBold
+otherHeader.TextSize = 18
+otherHeader.Parent = mainFrame
+
+-- Selected dropdown
+local selectedFrame = Instance.new("Frame")
+selectedFrame.Size = UDim2.new(1, -20, 0, 35)
+selectedFrame.Position = UDim2.new(0, 10, 0, 380)
+selectedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+selectedFrame.BorderSizePixel = 0
+selectedFrame.Parent = mainFrame
+
+local selectedLabel = Instance.new("TextLabel")
+selectedLabel.Size = UDim2.new(0, 80, 1, 0)
+selectedLabel.Position = UDim2.new(0, 10, 0, 0)
+selectedLabel.BackgroundTransparency = 1
+selectedLabel.Text = "Selected"
+selectedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+selectedLabel.Font = Enum.Font.Gotham
+selectedLabel.TextSize = 14
+selectedLabel.Parent = selectedFrame
+
+local selectedDropdown = Instance.new("TextButton")
+selectedDropdown.Size = UDim2.new(0, 200, 0, 25)
+selectedDropdown.Position = UDim2.new(0, 100, 0, 5)
+selectedDropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+selectedDropdown.Text = "One,Two,Three,Four,Five ▼"
+selectedDropdown.TextColor3 = Color3.fromRGB(200, 200, 255)
+selectedDropdown.TextSize = 12
+selectedDropdown.Font = Enum.Font.Gotham
+selectedDropdown.BorderSizePixel = 0
+selectedDropdown.Parent = selectedFrame
+
+local selectedOptions = {"One", "Two", "Three", "Four", "Five"}
+local currentSelected = 1
+selectedDropdown.MouseButton1Click:Connect(function()
+    currentSelected = currentSelected % #selectedOptions + 1
+    settings.selectedOption = selectedOptions[currentSelected]
+    selectedDropdown.Text = settings.selectedOption .. " ▼"
+    print("Selected option:", settings.selectedOption)
+end)
+
+-- SETTINGS Section
+local settingsHeader = Instance.new("TextLabel")
+settingsHeader.Size = UDim2.new(0, 100, 0, 25)
+settingsHeader.Position = UDim2.new(0, 10, 0, 425)
+settingsHeader.BackgroundTransparency = 1
+settingsHeader.Text = "SETTINGS"
+settingsHeader.TextColor3 = Color3.fromRGB(180, 120, 255)
+settingsHeader.TextXAlignment = Enum.TextXAlignment.Left
+settingsHeader.Font = Enum.Font.GothamBold
+settingsHeader.TextSize = 18
+settingsHeader.Parent = mainFrame
+
+-- Keybind
+local keybindFrame = Instance.new("Frame")
+keybindFrame.Size = UDim2.new(0, 160, 0, 35)
+keybindFrame.Position = UDim2.new(0, 10, 0, 455)
+keybindFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+keybindFrame.BorderSizePixel = 0
+keybindFrame.Parent = mainFrame
+
+local keybindLabel = Instance.new("TextLabel")
+keybindLabel.Size = UDim2.new(0, 70, 1, 0)
+keybindLabel.Position = UDim2.new(0, 10, 0, 0)
+keybindLabel.BackgroundTransparency = 1
+keybindLabel.Text = "Keybind"
+keybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+keybindLabel.TextXAlignment = Enum.TextXAlignment.Left
+keybindLabel.Font = Enum.Font.Gotham
+keybindLabel.TextSize = 14
+keybindLabel.Parent = keybindFrame
+
+local keybindBox = Instance.new("TextButton")
+keybindBox.Size = UDim2.new(0, 60, 0, 25)
+keybindBox.Position = UDim2.new(0, 90, 0, 5)
+keybindBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+keybindBox.Text = "None"
+keybindBox.TextColor3 = Color3.fromRGB(200, 200, 255)
+keybindBox.TextSize = 12
+keybindBox.Font = Enum.Font.Gotham
+keybindBox.BorderSizePixel = 0
+keybindBox.Parent = keybindFrame
+
+local keybindOptions = {"None", "LeftCtrl", "RightCtrl", "Shift", "Alt", "F1", "F2", "F3"}
+local currentKeybind = 1
+keybindBox.MouseButton1Click:Connect(function()
+    currentKeybind = currentKeybind % #keybindOptions + 1
+    settings.keybind = keybindOptions[currentKeybind]
+    keybindBox.Text = settings.keybind
+    print("Keybind set to:", settings.keybind)
+end)
+
+-- Accent Color
+local accentFrame = Instance.new("Frame")
+accentFrame.Size = UDim2.new(0, 160, 0, 35)
+accentFrame.Position = UDim2.new(0, 180, 0, 455)
+accentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+accentFrame.BorderSizePixel = 0
+accentFrame.Parent = mainFrame
+
+local accentLabel = Instance.new("TextLabel")
+accentLabel.Size = UDim2.new(0, 90, 1, 0)
+accentLabel.Position = UDim2.new(0, 10, 0, 0)
+accentLabel.BackgroundTransparency = 1
+accentLabel.Text = "Accent Color"
+accentLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+accentLabel.TextXAlignment = Enum.TextXAlignment.Left
+accentLabel.Font = Enum.Font.Gotham
+accentLabel.TextSize = 14
+accentLabel.Parent = accentFrame
+
+local accentBox = Instance.new("TextButton")
+accentBox.Size = UDim2.new(0, 25, 0, 25)
+accentBox.Position = UDim2.new(0, 110, 0, 5)
+accentBox.BackgroundColor3 = settings.accentColor
+accentBox.BorderSizePixel = 0
+accentBox.Text = ""
+accentBox.Parent = accentFrame
+
+local colors = {
+    Color3.fromRGB(120, 40, 200),  -- Purple
+    Color3.fromRGB(200, 40, 40),   -- Red
+    Color3.fromRGB(40, 120, 200),  -- Blue
+    Color3.fromRGB(40, 200, 40),   -- Green
+    Color3.fromRGB(200, 120, 40)   -- Orange
+}
+local currentColor = 1
+accentBox.MouseButton1Click:Connect(function()
+    currentColor = currentColor % #colors + 1
+    settings.accentColor = colors[currentColor]
+    accentBox.BackgroundColor3 = settings.accentColor
+    
+    -- Update all accent colored elements
+    enabledToggle.BackgroundColor3 = settings.enabled and settings.accentColor or Color3.fromRGB(80, 80, 80)
+    tab1.BackgroundColor3 = settings.accentColor
+    for _, btn in ipairs(categoryButtons) do
+        if btn.Text == "Enemy" then
+            btn.BackgroundColor3 = settings.accentColor
+        end
+    end
+    print("Accent color changed")
+end)
+
+-- MISC Section
+local miscHeader = Instance.new("TextLabel")
+miscHeader.Size = UDim2.new(0, 100, 0, 25)
+miscHeader.Position = UDim2.new(0, 10, 0, 495)
+miscHeader.BackgroundTransparency = 1
+miscHeader.Text = "MISC"
+miscHeader.TextColor3 = Color3.fromRGB(180, 120, 255)
+miscHeader.TextXAlignment = Enum.TextXAlignment.Left
+miscHeader.Font = Enum.Font.GothamBold
+miscHeader.TextSize = 18
+miscHeader.Parent = mainFrame
+
+-- Slider Integer
+local sliderIntFrame = Instance.new("Frame")
+sliderIntFrame.Size = UDim2.new(0, 110, 0, 35)
+sliderIntFrame.Position = UDim2.new(0, 10, 0, 525)
+sliderIntFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+sliderIntFrame.BorderSizePixel = 0
+sliderIntFrame.Parent = mainFrame
+
+local sliderIntLabel = Instance.new("TextLabel")
+sliderIntLabel.Size = UDim2.new(0, 60, 1, 0)
+sliderIntLabel.Position = UDim2.new(0, 5, 0, 0)
+sliderIntLabel.BackgroundTransparency = 1
+sliderIntLabel.Text = "Integer"
+sliderIntLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+sliderIntLabel.TextXAlignment = Enum.TextXAlignment.Left
+sliderIntLabel.Font = Enum.Font.Gotham
+sliderIntLabel.TextSize = 11
+sliderIntLabel.Parent = sliderIntFrame
+
+local sliderIntValue = Instance.new("TextButton")
+sliderIntValue.Size = UDim2.new(0, 35, 0, 25)
+sliderIntValue.Position = UDim2.new(0, 70, 0, 5)
+sliderIntValue.BackgroundColor3 = settings.accentColor
+sliderIntValue.Text = "50"
+sliderIntValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+sliderIntValue.TextSize = 12
+sliderIntValue.Font = Enum.Font.GothamBold
+sliderIntValue.BorderSizePixel = 0
+sliderIntValue.Parent = sliderIntFrame
+
+sliderIntValue.MouseButton1Click:Connect(function()
+    settings.sliderInt = settings.sliderInt + 10
+    if settings.sliderInt > 100 then
+        settings.sliderInt = 0
+    end
+    sliderIntValue.Text = tostring(settings.sliderInt)
+    print("Slider Integer:", settings.sliderInt)
+end)
+
+-- Button
+local miscButton = Instance.new("TextButton")
+miscButton.Size = UDim2.new(0, 70, 0, 35)
+miscButton.Position = UDim2.new(0, 130, 0, 525)
+miscButton.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+miscButton.Text = "Button"
+miscButton.TextColor3 = Color3.fromRGB(200, 200, 255)
+miscButton.TextSize = 13
+miscButton.Font = Enum.Font.GothamBold
+miscButton.BorderSizePixel = 0
+miscButton.Parent = mainFrame
+
+miscButton.MouseButton1Click:Connect(function()
+    miscButton.BackgroundColor3 = settings.accentColor
+    task.wait(0.1)
+    miscButton.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    print("Misc Button clicked!")
+end)
+
+-- Slider Float
+local sliderFloatFrame = Instance.new("Frame")
+sliderFloatFrame.Size = UDim2.new(0, 110, 0, 35)
+sliderFloatFrame.Position = UDim2.new(0, 210, 0, 525)
+sliderFloatFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+sliderFloatFrame.BorderSizePixel = 0
+sliderFloatFrame.Parent = mainFrame
+
+local sliderFloatLabel = Instance.new("TextLabel")
+sliderFloatLabel.Size = UDim2.new(0, 60, 1, 0)
+sliderFloatLabel.Position = UDim2.new(0, 5, 0, 0)
+sliderFloatLabel.BackgroundTransparency = 1
+sliderFloatLabel.Text = "Float"
+sliderFloatLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+sliderFloatLabel.TextXAlignment = Enum.TextXAlignment.Left
+sliderFloatLabel.Font = Enum.Font.Gotham
+sliderFloatLabel.TextSize = 11
+sliderFloatLabel.Parent = sliderFloatFrame
+
+local sliderFloatValue = Instance.new("TextButton")
+sliderFloatValue.Size = UDim2.new(0, 45, 0, 25)
+sliderFloatValue.Position = UDim2.new(0, 65, 0, 5)
+sliderFloatValue.BackgroundColor3 = settings.accentColor
+sliderFloatValue.Text = "1.000"
+sliderFloatValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+sliderFloatValue.TextSize = 11
+sliderFloatValue.Font = Enum.Font.GothamBold
+sliderFloatValue.BorderSizePixel = 0
+sliderFloatValue.Parent = sliderFloatFrame
+
+sliderFloatValue.MouseButton1Click:Connect(function()
+    settings.sl
